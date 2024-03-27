@@ -1,70 +1,88 @@
-# Getting Started with Create React App
+# React x Usermaven Example
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+## Installation
 
-## Available Scripts
+To use Usermaven SDK, install npm package
 
-In the project directory, you can run:
+```bash
+npm install @usermaven/react
+```
 
-### `npm start`
+Import and configure Usermaven SDK Provider
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+```typescript jsx
+//...
+import { createClient, UsermavenProvider } from "@usermaven/react";
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+// initialize Usermaven client
+const usermavenClient = createClient({
+  tracking_host: "__USERMAVEN_HOST__",
+  key: "__API_KET__",
+  // See Usermaven SDK parameters section for more options
+});
 
-### `npm test`
+// wrap our app with Usermaven provider
+ReactDOM.render(
+  <React.StrictMode>
+    <UsermavenProvider client={usermavenClient}>
+      <App />
+    </UsermavenProvider>
+  </React.StrictMode>,
+  document.getElementById('root')
+);
+```
+See [parameters list](https://usermaven.com/docs/sending-data/js-sdk/parameters-reference) for `createClient()` call.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Usage
 
-### `npm run build`
+```typescript jsx
+import { useUsermaven } from "@usermaven/react";
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+const App = () => {
+  const {id, track, trackPageView} = useUsermaven(); // import methods from useUsermaven hook
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+  useEffect(() => {
+    id({id: '__USER_ID__', email: '__USER_EMAIL__'}); // identify current user for all track events
+    trackPageView() // send page_view event
+  }, [])
+  
+  const onClick = (btnName: string) => {
+    track('btn_click', {btn: btnName}); // send btn_click event with button name payload on click
+  }
+  
+  return (
+    <button onClick="() => onClick('test_btn')">Test button</button>
+  )
+}
+```
+\
+To enable automatic pageview tracking, add `usePageView()` hook. This hook will send pageview each time
+user loads a new page (including internal SPA pages). This hook relies on [React Router](https://reactrouter.com/) and
+requires `react-router` (>=5.x) package to be present
+```typescript jsx
+const App = () => {
+  usePageView() //this hook will send pageview track event on router change
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+  return (
+    <Routes>
+      <Route path="/" element={<Main />} />
+      <Route path="page" element={<Page />} />
+    </Routes>
+  );
+}
+```
+\
+If you need to pre-configure usermaven event - for example, identify a user, it's possible to do via `before` callback:
+```typescript
+usePageView({before: (usermaven) => usermaven.id({id: '__USER_ID__', email: '__USER_EMAIL__'})})
+```
 
-### `npm run eject`
+## Hooks
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+### useUsermaven
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+Returns object with `id`, `track`, `trackPageView`, `rawTrack`, `set`, `unset` and `interceptAnalytics` [methods of Usermaven SDK](https://usermaven.com/docs/sending-data/js-sdk/methods-reference).
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+### usePageView
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+Can be used only with react-router. Sends `pageview` event on every route change.
